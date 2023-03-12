@@ -8,6 +8,8 @@ Shared.State.globalStartedEngines = ("%s_globalStartedEngines"):format(Shared.cu
 
 Shared.State.vehicleEngine = ("%s_vehicleEngine"):format(Shared.currentResourceName)
 
+Shared.State.vehicleLock = ("%s_vehicleLock"):format(Shared.currentResourceName)
+
 ---@alias plate string
 
 ---@class startedEngines
