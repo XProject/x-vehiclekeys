@@ -1,17 +1,42 @@
 local startedEngines = GlobalState[Shared.State.globalStartedEngines]
 local PLAYER_ID = PlayerId()
-local inVehicleThreadRunning = false
+local outsideVehicleThread, insideVehicleThread
+local isInsideVehicleThreadRunning, isOutsideVehicleThreadRunning = false, false
 
 local function canControlVehicle(vehicleEntity)
     return NetworkGetEntityOwner(vehicleEntity) == PLAYER_ID and NetworkHasControlOfEntity(vehicleEntity)
 end
 
-local function inVehicleThread()
-    if inVehicleThreadRunning then return end
-    inVehicleThreadRunning = true
+function outsideVehicleThread()
+    if Config.LockState ~= 4 then return end
+    if isOutsideVehicleThreadRunning then return end
+    isOutsideVehicleThreadRunning = true
+
+    local vehicleEntity = 0
+    while isOutsideVehicleThreadRunning and vehicleEntity == 0 do
+        local playerPedId = PlayerPedId()
+        vehicleEntity = GetVehiclePedIsIn(playerPedId, false)
+
+        if vehicleEntity ~= 0 then break end
+
+        local vehicleTryingToEnter = GetVehiclePedIsTryingToEnter(playerPedId)
+        if DoesEntityExist(vehicleTryingToEnter) then
+            if GetVehicleDoorLockStatus(vehicleTryingToEnter) == Config.LockState then
+                ClearPedTasks(playerPedId)
+            end
+        end
+        print("outsideVehicleThread")
+        Wait(250)
+    end
+    isOutsideVehicleThreadRunning = false
+end
+
+function insideVehicleThread()
+    if isInsideVehicleThreadRunning then return end
+    isInsideVehicleThreadRunning = true
 
     local vehicleEntity
-    while vehicleEntity ~= 0 do
+    while isInsideVehicleThreadRunning and vehicleEntity ~= 0 do
         local playerPedId = PlayerPedId()
         vehicleEntity = GetVehiclePedIsIn(playerPedId, false)
 
@@ -27,13 +52,13 @@ local function inVehicleThread()
         end
         Wait(250)
     end
-    inVehicleThreadRunning = false
-    Entity(vehicleEntity).state:set(Shared.State.vehicleEngine, startedEngines[vehiclePlate], true) -- to keep the engine running in case it has been left on before exiting the vehicle
+    isInsideVehicleThreadRunning = false
+    CreateThread(outsideVehicleThread)
 end
 
-local function toggleEngine(vehicleEntity, state)
+local function toggleVehicleEngine(vehicleEntity, state)
     if not canControlVehicle(vehicleEntity) then return end
-
+    
     if state == nil then
         local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
         Entity(vehicleEntity).state:set(Shared.State.vehicleEngine, not startedEngines[vehiclePlate], true)
@@ -42,16 +67,31 @@ local function toggleEngine(vehicleEntity, state)
     end
 end
 
+local function toggleVehicleLock(vehicleEntity, state)
+    if state == nil then
+        state = Entity(vehicleEntity).state[Shared.State.vehicleLock]
+        Entity(vehicleEntity).state:set(Shared.State.vehicleLock, not state, true)
+    else
+        Entity(vehicleEntity).state:set(Shared.State.vehicleLock, state and "locked" or "unlocked", true)
+    end
+end
+
+CreateThread(outsideVehicleThread)
+
 AddEventHandler("gameEventTriggered", function(eventName)
     if eventName ~= "CEventNetworkPlayerEnteredVehicle" then return end
 
-    inVehicleThread()
+    CreateThread(insideVehicleThread)
 end)
 
-RegisterKeyMapping("toggleEngine", "Toggle Vehicle Engine", "keyboard", "G")
-RegisterCommand("toggleEngine", function()
-    toggleEngine(GetVehiclePedIsIn(PlayerPedId(), false))
+RegisterCommand("toggleVehicleEngine", function()
+    local vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false)
+
+    if not vehicleEntity or vehicleEntity == 0 then return end
+
+    toggleVehicleEngine(vehicleEntity)
 end, false)
+RegisterKeyMapping("toggleVehicleEngine", "Toggle Vehicle Engine", "keyboard", Config.ToggleVehicleEngine)
 
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalStartedEngines, nil, function(_, _, value)
@@ -66,6 +106,23 @@ AddStateBagChangeHandler(Shared.State.vehicleEngine, nil, function(bagName, _, v
 
     SetVehicleEngineOn(vehicleEntity, value, true, true)
 end)
+
+RegisterCommand("lock", function(source, args)
+    local nearbyVehicles = Utils.getNearbyVehicles(GetEntityCoords(PlayerPedId()))
+    local vehicle = false
+
+    for i = 1, #nearbyVehicles do
+        local vehicleData = nearbyVehicles[i]
+        local vehiclePlate = GetVehicleNumberPlateText(vehicleData.vehicle)
+
+        if vehiclePlate == args[1] then
+            vehicle = vehicleData.vehicle
+            break
+        end
+    end
+
+    if vehicle then toggleVehicleLock(vehicle, args[2]) end
+end, false)
 
 --[[
 AddEventHandler("gameEventTriggered", function(eventName)

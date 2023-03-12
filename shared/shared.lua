@@ -1,3 +1,5 @@
+Utils = {}
+
 Shared = {}
 
 Shared.currentResourceName = GetCurrentResourceName()
@@ -7,6 +9,8 @@ Shared.State = {}
 Shared.State.globalStartedEngines = ("%s_globalStartedEngines"):format(Shared.currentResourceName)
 
 Shared.State.vehicleEngine = ("%s_vehicleEngine"):format(Shared.currentResourceName)
+
+Shared.State.vehicleLock = ("%s_vehicleLock"):format(Shared.currentResourceName)
 
 ---@alias plate string
 
