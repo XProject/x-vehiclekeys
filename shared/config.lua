@@ -6,4 +6,6 @@ Config.LockState = 2
 
 Config.ToggleVehicleEngine = "G"
 
+Config.ToggleVehicleLock = "U"
+
 Config.MaxRemoteRange = 25.0

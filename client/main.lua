@@ -107,6 +107,13 @@ RegisterCommand("toggleVehicleEngine", function()
 end, false)
 RegisterKeyMapping("toggleVehicleEngine", "Toggle Vehicle Engine", "keyboard", Config.ToggleVehicleEngine)
 
+RegisterCommand("toggleVehicleLock", function()
+    local vehicleEntity = Utils.GetClosestVehicle(GetEntityCoords(PlayerPedId()))
+
+    if vehicleEntity then toggleVehicleLock(vehicleEntity, nil, false, true) end
+end, false)
+RegisterKeyMapping("toggleVehicleLock", "Toggle Vehicle Lock", "keyboard", Config.ToggleVehicleLock)
+
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.globalStartedEngines, nil, function(_, _, value)
     startedEngines = value
