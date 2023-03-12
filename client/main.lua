@@ -33,6 +33,10 @@ local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
         Entity(vehicleEntity).state:set(Shared.State.vehicleLock, state, true)
     end
 
+    local soundId = GetSoundId()
+    PlaySoundFromEntity(soundId, "Door_Open", vehicleEntity, "Lowrider_Super_Mod_Garage_Sounds", true, false)
+    ReleaseSoundId(soundId)
+
     if notify then
         local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
         Utils.Notification(nil, ("%s Doors %s"):format(vehiclePlate, state and "Locked" or "Unlocked"), "success")
