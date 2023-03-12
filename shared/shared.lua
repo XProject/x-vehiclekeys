@@ -1,5 +1,3 @@
-Utils = {}
-
 Shared = {}
 
 Shared.currentResourceName = GetCurrentResourceName()

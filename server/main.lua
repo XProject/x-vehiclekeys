@@ -11,7 +11,7 @@ end
 CreateThread(syncData)
 
 local function initializeVehicleStateBags(vehicleEntity)
-    Entity(vehicleEntity).state:set(Shared.State.vehicleLock, "locked", true)
+    Entity(vehicleEntity).state:set(Shared.State.vehicleLock, true, true)
 end
 
 AddEventHandler("entityCreated", function(entity)
@@ -36,9 +36,7 @@ AddStateBagChangeHandler(Shared.State.vehicleLock, nil, function(bagName, _, val
     local vehicleEntity = GetEntityFromStateBagName(bagName)
     if value == nil or not vehicleEntity or vehicleEntity == 0 then return end
 
-    value = (value == "locked" and Config.LockState) or (value == "unlocked" and Config.UnlockState) --[[@as number]]
-
-    SetVehicleDoorsLocked(vehicleEntity, value)
+    SetVehicleDoorsLocked(vehicleEntity, value and Config.LockState or Config.UnlockState)
 
     syncEngines()
 end)
