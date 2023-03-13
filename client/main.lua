@@ -40,7 +40,7 @@ end
 
 local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
     if checkCanControl and not canControlVehicle(vehicleEntity) then return end
-    
+
     TriggerServerEvent(Shared.Event.vehicleLock, VehToNet(vehicleEntity), state)
 
     playSoundFromEntity(vehicleEntity, "Door_Open", "Lowrider_Super_Mod_Garage_Sounds")
@@ -48,7 +48,7 @@ local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
 end
 
 local function outsideVehicleLoop()
-    if Config.LockState ~= 4 then return end
+    if Config.LockState ~= 4 and not Config.PreventBreakingWindows then return end
     if isOutsideVehicleLoopRunning then return end
     isOutsideVehicleLoopRunning = true
 
@@ -66,7 +66,7 @@ local function outsideVehicleLoop()
         else
             break
         end
-        Wait(250)
+        Wait(350)
     end
     isOutsideVehicleLoopRunning = false
 end
@@ -118,6 +118,7 @@ AddStateBagChangeHandler(Shared.State.vehicleLock, nil, function(bagName, _, val
     if not vehicleEntity or vehicleEntity == 0 then return end
 
     SetVehicleDoorsLocked(vehicleEntity, value and Config.LockState or Config.UnlockState)
+    if value then SetVehicleDoorsShut(vehicleEntity, false) end
 end)
 
 RegisterCommand("toggleVehicleEngine", function()

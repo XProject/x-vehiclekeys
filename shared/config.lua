@@ -11,3 +11,5 @@ Config.ToggleVehicleEngine = "G"
 Config.ToggleVehicleLock = "U"
 
 Config.MaxInteractRange = 25.0
+
+Config.PreventBreakingWindows = false
