@@ -2,7 +2,7 @@ local PLAYER_ID = PlayerId()
 local isInsideVehicleLoopRunning, isOutsideVehicleLoopRunning = false, false
 
 local function canControlVehicle(vehicleEntity)
-    return --[[NetworkGetEntityOwner(vehicleEntity) == PLAYER_ID and]] NetworkHasControlOfEntity(vehicleEntity)
+    return NetworkGetEntityOwner(vehicleEntity) == PLAYER_ID and NetworkHasControlOfEntity(vehicleEntity)
 end
 
 local function playSoundFromEntity(vehicleEntity, audioName, audioRef)
@@ -40,21 +40,11 @@ end
 
 local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
     if checkCanControl and not canControlVehicle(vehicleEntity) then return end
-
-    if state == nil then
-        state = not Entity(vehicleEntity).state[Shared.State.vehicleLock]
-        Entity(vehicleEntity).state:set(Shared.State.vehicleLock, state, true)
-    else
-        Entity(vehicleEntity).state:set(Shared.State.vehicleLock, state, true)
-    end
+    
+    TriggerServerEvent(Shared.Event.vehicleLock, VehToNet(vehicleEntity), state)
 
     playSoundFromEntity(vehicleEntity, "Door_Open", "Lowrider_Super_Mod_Garage_Sounds")
     blinkVehicleLights(vehicleEntity)
-
-    if notify then
-        local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
-        Utils.Notification(nil, ("%s Doors %s"):format(vehiclePlate, state and "Locked" or "Unlocked"), "success")
-    end
 end
 
 local function outsideVehicleLoop()
@@ -121,15 +111,15 @@ AddStateBagChangeHandler(Shared.State.vehicleEngine, nil, function(bagName, _, v
 
     SetVehicleEngineOn(vehicleEntity, value, true, true)
 end)
---[[
+
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.vehicleLock, nil, function(bagName, _, value)
     local vehicleEntity = GetEntityFromStateBagName(bagName)
-    if not vehicleEntity or vehicleEntity == 0 or not canControlVehicle(vehicleEntity) then return end
+    if not vehicleEntity or vehicleEntity == 0 then return end
 
-    blinkVehicleLights(vehicleEntity)
+    SetVehicleDoorsLocked(vehicleEntity, value and Config.LockState or Config.UnlockState)
 end)
-]]
+
 RegisterCommand("toggleVehicleEngine", function()
     local vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false)
 

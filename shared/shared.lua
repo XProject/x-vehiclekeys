@@ -8,6 +8,10 @@ Shared.State.vehicleEngine = ("%s_vehicleEngine"):format(Shared.currentResourceN
 
 Shared.State.vehicleLock = ("%s_vehicleLock"):format(Shared.currentResourceName)
 
+Shared.Event = {}
+
+Shared.Event.vehicleLock = ("%s:vehicleLock"):format(Shared.currentResourceName)
+
 function dumpTable(table, nb)
     if nb == nil then
         nb = 0
