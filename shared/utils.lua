@@ -34,7 +34,7 @@ function Utils.GetNearbyVehicles(coords)
         local vehicleCoords = GetEntityCoords(vehicle)
         local distance = #(coords - vehicleCoords)
 
-        if distance <= Config.MaxRemoteRange then
+        if distance <= Config.MaxInteractRange then
             count += 1
             nearby[count] = {
                 vehicle = vehicle,
@@ -52,7 +52,7 @@ end
 function Utils.GetClosestVehicle(coords)
     local vehicles = GetGamePool("CVehicle")
     local closestVehicle, closestCoords
-    maxDistance = Config.MaxRemoteRange
+    maxDistance = Config.MaxInteractRange
 
     for i = 1, #vehicles do
         local vehicle = vehicles[i]

@@ -1,18 +1,21 @@
-local startedEngines = GlobalState[Shared.State.globalStartedEngines]
 local PLAYER_ID = PlayerId()
-local outsideVehicleLoop, insideVehicleLoop
 local isInsideVehicleLoopRunning, isOutsideVehicleLoopRunning = false, false
 
 local function canControlVehicle(vehicleEntity)
     return NetworkGetEntityOwner(vehicleEntity) == PLAYER_ID and NetworkHasControlOfEntity(vehicleEntity)
 end
 
+local function playSoundFromEntity(vehicleEntity, audioName, audioRef)
+    local soundId = GetSoundId()
+    PlaySoundFromEntity(soundId, audioName, vehicleEntity, audioRef, true, false)
+    ReleaseSoundId(soundId)
+end
+
 local function toggleVehicleEngine(vehicleEntity, state, checkCanControl, notify)
     if checkCanControl and not canControlVehicle(vehicleEntity) then return end
 
     if state == nil then
-        local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
-        state = not startedEngines[vehiclePlate]
+        state = not Entity(vehicleEntity).state[Shared.State.vehicleEngine]
         Entity(vehicleEntity).state:set(Shared.State.vehicleEngine, state, true)
     else
         Entity(vehicleEntity).state:set(Shared.State.vehicleEngine, state, true)
@@ -33,9 +36,7 @@ local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
         Entity(vehicleEntity).state:set(Shared.State.vehicleLock, state, true)
     end
 
-    local soundId = GetSoundId()
-    PlaySoundFromEntity(soundId, "Door_Open", vehicleEntity, "Lowrider_Super_Mod_Garage_Sounds", true, false)
-    ReleaseSoundId(soundId)
+    playSoundFromEntity(vehicleEntity, "Door_Open", "Lowrider_Super_Mod_Garage_Sounds")
 
     if notify then
         local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
@@ -43,7 +44,7 @@ local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
     end
 end
 
-function outsideVehicleLoop()
+local function outsideVehicleLoop()
     if Config.LockState ~= 4 then return end
     if isOutsideVehicleLoopRunning then return end
     isOutsideVehicleLoopRunning = true
@@ -67,7 +68,7 @@ function outsideVehicleLoop()
     isOutsideVehicleLoopRunning = false
 end
 
-function insideVehicleLoop()
+local function insideVehicleLoop()
     if isInsideVehicleLoopRunning then return end
     isInsideVehicleLoopRunning = true
 
@@ -75,20 +76,18 @@ function insideVehicleLoop()
     while isInsideVehicleLoopRunning do
         local playerPedId = PlayerPedId()
         vehicleEntity = GetVehiclePedIsIn(playerPedId, false)
-
         if vehicleEntity ~= 0 then
-            local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
-            local isVehicleEngineRunning = GetIsVehicleEngineRunning(vehicleEntity)
-
-            if startedEngines[vehiclePlate] and not isVehicleEngineRunning then
+            local isVehicleEngineRunning = GetIsVehicleEngineRunning(vehicleEntity) or IsVehicleEngineStarting(vehicleEntity)
+            local isVehicleStarted = Entity(vehicleEntity).state[Shared.State.vehicleEngine]
+            if isVehicleStarted and not isVehicleEngineRunning then
                 toggleVehicleEngine(vehicleEntity, true, false, false)
-            elseif not startedEngines[vehiclePlate] and isVehicleEngineRunning then
+            elseif not isVehicleStarted and isVehicleEngineRunning then
                 toggleVehicleEngine(vehicleEntity, false, false, false)
             end
         else
             break
         end
-        Wait(250)
+        Wait(350)
     end
     isInsideVehicleLoopRunning = false
     CreateThread(outsideVehicleLoop)
@@ -102,6 +101,15 @@ AddEventHandler("gameEventTriggered", function(eventName)
     CreateThread(insideVehicleLoop)
 end)
 
+---@diagnostic disable-next-line: param-type-mismatch
+AddStateBagChangeHandler(Shared.State.vehicleEngine, nil, function(bagName, _, value)
+    local vehicleEntity = GetEntityFromStateBagName(bagName)
+
+    if not vehicleEntity or vehicleEntity == 0 or not canControlVehicle(vehicleEntity) then return end
+
+    SetVehicleEngineOn(vehicleEntity, value, true, true)
+end)
+
 RegisterCommand("toggleVehicleEngine", function()
     local vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false)
 
@@ -112,43 +120,32 @@ end, false)
 RegisterKeyMapping("toggleVehicleEngine", "Toggle Vehicle Engine", "keyboard", Config.ToggleVehicleEngine)
 
 RegisterCommand("toggleVehicleLock", function()
-    local vehicleEntity = Utils.GetClosestVehicle(GetEntityCoords(PlayerPedId()))
+    local vehicleEntity = GetVehiclePedIsIn(playerPedId, false)
+    vehicleEntity = vehicleEntity == 0 and Utils.GetClosestVehicle(GetEntityCoords(PlayerPedId())) or vehicleEntity
 
     if vehicleEntity then toggleVehicleLock(vehicleEntity, nil, false, true) end
 end, false)
 RegisterKeyMapping("toggleVehicleLock", "Toggle Vehicle Lock", "keyboard", Config.ToggleVehicleLock)
 
----@diagnostic disable-next-line: param-type-mismatch
-AddStateBagChangeHandler(Shared.State.globalStartedEngines, nil, function(_, _, value)
-    startedEngines = value
-end)
+if Config.Debug then
+    RegisterCommand("lock", function(_, args)
+        local nearbyVehicles = Utils.GetNearbyVehicles(GetEntityCoords(PlayerPedId()))
+        local vehicle = false
 
----@diagnostic disable-next-line: param-type-mismatch
-AddStateBagChangeHandler(Shared.State.vehicleEngine, nil, function(bagName, _, value)
-    local vehicleEntity = GetEntityFromStateBagName(bagName)
+        for i = 1, #nearbyVehicles do
+            local vehicleData = nearbyVehicles[i]
+            local vehiclePlate = GetVehicleNumberPlateText(vehicleData.vehicle)
 
-    if value == nil or not vehicleEntity or vehicleEntity == 0 or not canControlVehicle(vehicleEntity) then return end
-
-    SetVehicleEngineOn(vehicleEntity, value, true, true)
-end)
-
-RegisterCommand("lock", function(source, args)
-    local nearbyVehicles = Utils.GetNearbyVehicles(GetEntityCoords(PlayerPedId()))
-    local vehicle = false
-
-    for i = 1, #nearbyVehicles do
-        local vehicleData = nearbyVehicles[i]
-        local vehiclePlate = GetVehicleNumberPlateText(vehicleData.vehicle)
-
-        if vehiclePlate == args[1] then
-            vehicle = vehicleData.vehicle
-            break
+            if vehiclePlate == args[1] then
+                vehicle = vehicleData.vehicle
+                break
+            end
         end
-    end
 
-    toboolean = { ["true"] = true, ["false"] = false }
-    if vehicle then toggleVehicleLock(vehicle, toboolean[args[2]:lower()], false, true) end
-end, false)
+        toboolean = { ["true"] = true, ["false"] = false }
+        if vehicle then toggleVehicleLock(vehicle, toboolean[args[2]:lower()], false, true) end
+    end, false)
+end
 
 --[[
 AddEventHandler("gameEventTriggered", function(eventName)
