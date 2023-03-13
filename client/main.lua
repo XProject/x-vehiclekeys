@@ -2,13 +2,25 @@ local PLAYER_ID = PlayerId()
 local isInsideVehicleLoopRunning, isOutsideVehicleLoopRunning = false, false
 
 local function canControlVehicle(vehicleEntity)
-    return NetworkGetEntityOwner(vehicleEntity) == PLAYER_ID and NetworkHasControlOfEntity(vehicleEntity)
+    return --[[NetworkGetEntityOwner(vehicleEntity) == PLAYER_ID and]] NetworkHasControlOfEntity(vehicleEntity)
 end
 
 local function playSoundFromEntity(vehicleEntity, audioName, audioRef)
     local soundId = GetSoundId()
     PlaySoundFromEntity(soundId, audioName, vehicleEntity, audioRef, true, false)
     ReleaseSoundId(soundId)
+end
+
+local function blinkVehicleLights(vehicleEntity)
+    CreateThread(function()
+        NetworkRequestControlOfEntity(vehicleEntity)
+        for _ = 1, 5 do
+            Wait(200)
+            SetVehicleLights(vehicleEntity, 2)
+            Wait(200)
+            SetVehicleLights(vehicleEntity, 0)
+        end
+    end)
 end
 
 local function toggleVehicleEngine(vehicleEntity, state, checkCanControl, notify)
@@ -37,6 +49,7 @@ local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
     end
 
     playSoundFromEntity(vehicleEntity, "Door_Open", "Lowrider_Super_Mod_Garage_Sounds")
+    blinkVehicleLights(vehicleEntity)
 
     if notify then
         local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
@@ -104,12 +117,19 @@ end)
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.vehicleEngine, nil, function(bagName, _, value)
     local vehicleEntity = GetEntityFromStateBagName(bagName)
-
     if not vehicleEntity or vehicleEntity == 0 or not canControlVehicle(vehicleEntity) then return end
 
     SetVehicleEngineOn(vehicleEntity, value, true, true)
 end)
+--[[
+---@diagnostic disable-next-line: param-type-mismatch
+AddStateBagChangeHandler(Shared.State.vehicleLock, nil, function(bagName, _, value)
+    local vehicleEntity = GetEntityFromStateBagName(bagName)
+    if not vehicleEntity or vehicleEntity == 0 or not canControlVehicle(vehicleEntity) then return end
 
+    blinkVehicleLights(vehicleEntity)
+end)
+]]
 RegisterCommand("toggleVehicleEngine", function()
     local vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false)
 
