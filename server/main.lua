@@ -1,16 +1,5 @@
----@type startedEngines[]
-local startedEngines = {}
-
-local function syncEngines()
-    GlobalState:set(Shared.State.globalStartedEngines, startedEngines, true)
-end
-
-local function syncData()
-    syncEngines()
-end
-CreateThread(syncData)
-
 local function initializeVehicleStateBags(vehicleEntity)
+    Entity(vehicleEntity).state:set(Shared.State.vehicleEngine, GetIsVehicleEngineRunning(vehicleEntity) or IsVehicleEngineStarting(vehicleEntity), true)
     Entity(vehicleEntity).state:set(Shared.State.vehicleLock, true, true)
 end
 
@@ -21,30 +10,21 @@ AddEventHandler("entityCreated", function(entity)
 end)
 
 ---@diagnostic disable-next-line: param-type-mismatch
-AddStateBagChangeHandler(Shared.State.vehicleEngine, nil, function(bagName, _, value)
-    local vehicleEntity = GetEntityFromStateBagName(bagName)
-    if value == nil or not vehicleEntity or vehicleEntity == 0 then return end
-
-    local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
-    startedEngines[vehiclePlate] = value
-
-    syncEngines()
-end)
-
----@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.vehicleLock, nil, function(bagName, _, value)
     local vehicleEntity = GetEntityFromStateBagName(bagName)
-    if value == nil or not vehicleEntity or vehicleEntity == 0 then return end
+    if not vehicleEntity or vehicleEntity == 0 then return end
 
     SetVehicleDoorsLocked(vehicleEntity, value and Config.LockState or Config.UnlockState)
-
-    syncEngines()
 end)
 
-local function onResourceStop(resource)
-    if resource ~= Shared.currentResourceName then return end
-    GlobalState:set(Shared.State.globalStartedEngines, {}, true)
-end
+RegisterServerEvent(Shared.Event.vehicleLock, function(netId, state)
+    local vehicleEntity = NetworkGetEntityFromNetworkId(netId)
+    if not DoesEntityExist(vehicleEntity) then return end
 
-AddEventHandler("onResourceStop", onResourceStop)
-AddEventHandler("onServerResourceStop", onResourceStop)
+    state = (state == nil and not Entity(vehicleEntity).state[Shared.State.vehicleLock]) or state
+
+    Entity(vehicleEntity).state:set(Shared.State.vehicleLock, state, true)
+
+    local vehiclePlate = GetVehicleNumberPlateText(vehicleEntity)
+    Utils.Notification(source, ("%s Doors %s"):format(vehiclePlate, state and "Locked" or "Unlocked"), "success")
+end)

@@ -4,16 +4,13 @@ Shared.currentResourceName = GetCurrentResourceName()
 
 Shared.State = {}
 
-Shared.State.globalStartedEngines = ("%s_globalStartedEngines"):format(Shared.currentResourceName)
-
 Shared.State.vehicleEngine = ("%s_vehicleEngine"):format(Shared.currentResourceName)
 
 Shared.State.vehicleLock = ("%s_vehicleLock"):format(Shared.currentResourceName)
 
----@alias plate string
+Shared.Event = {}
 
----@class startedEngines
----@field [plate] boolean
+Shared.Event.vehicleLock = ("%s:vehicleLock"):format(Shared.currentResourceName)
 
 function dumpTable(table, nb)
     if nb == nil then
