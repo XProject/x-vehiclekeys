@@ -5,22 +5,47 @@ local function canControlVehicle(vehicleEntity)
     return NetworkGetEntityOwner(vehicleEntity) == PLAYER_ID and NetworkHasControlOfEntity(vehicleEntity)
 end
 
-local function playSoundFromEntity(vehicleEntity, audioName, audioRef)
-    local soundId = GetSoundId()
-    PlaySoundFromEntity(soundId, audioName, vehicleEntity, audioRef, true, false)
-    ReleaseSoundId(soundId)
+local function playVehicleAlarm(vehicleEntity, duration)
+    SetVehicleAlarm(vehicleEntity, true)
+    SetVehicleAlarmTimeLeft(vehicleEntity, duration)
+end
+
+local function stopVehicleAlarm(vehicleEntity)
+    SetVehicleAlarm(vehicleEntity, false)
 end
 
 local function blinkVehicleLights(vehicleEntity)
+    NetworkRequestControlOfEntity(vehicleEntity)
     CreateThread(function()
-        NetworkRequestControlOfEntity(vehicleEntity)
         for _ = 1, 5 do
             Wait(200)
             SetVehicleLights(vehicleEntity, 2)
+            playVehicleAlarm(vehicleEntity, 150)
             Wait(200)
             SetVehicleLights(vehicleEntity, 0)
         end
     end)
+end
+
+local function loadAnimDictionary(animDictionary)
+    if not DoesAnimDictExist(animDictionary) then return end
+    while not HasAnimDictLoaded(animDictionary) do
+        RequestAnimDict(animDictionary)
+        Wait(0)
+    end
+end
+
+local function playKeyfobAnimation()
+    loadAnimDictionary("anim@mp_player_intmenu@key_fob@")
+
+    local playerPedId = PlayerPedId()
+    ---@diagnostic disable-next-line: param-type-mismatch, missing-parameter
+    local keyFob = CreateObject(`p_car_keys_01`, GetEntityCoords(playerPedId), true, true, true)
+
+    AttachEntityToEntity(keyFob, playerPedId, GetPedBoneIndex(playerPedId, 57005), 0.12, 0.02, -0.02, 0.0, 180.0, 130.0, true, true, false, true, 1, true)
+    TaskPlayAnim(PlayerPedId(), "anim@mp_player_intmenu@key_fob@", "fob_click", 3.0, 3.0, -1, 49, 0, false, false, false)
+
+    SetTimeout(1000, function() StopAnimTask(playerPedId, "anim@mp_player_intmenu@key_fob@", "fob_click", 1.0) DeleteEntity(keyFob) end)
 end
 
 local function toggleVehicleEngine(vehicleEntity, state, checkCanControl, notify)
@@ -38,13 +63,14 @@ local function toggleVehicleEngine(vehicleEntity, state, checkCanControl, notify
     end
 end
 
-local function toggleVehicleLock(vehicleEntity, state, checkCanControl, notify)
+local function toggleVehicleLock(vehicleEntity, state, checkCanControl)
     if checkCanControl and not canControlVehicle(vehicleEntity) then return end
 
     TriggerServerEvent(Shared.Event.vehicleLock, VehToNet(vehicleEntity), state)
 
-    playSoundFromEntity(vehicleEntity, "Door_Open", "Lowrider_Super_Mod_Garage_Sounds")
     blinkVehicleLights(vehicleEntity)
+
+    playKeyfobAnimation()
 end
 
 local function outsideVehicleLoop()
@@ -107,7 +133,7 @@ end)
 ---@diagnostic disable-next-line: param-type-mismatch
 AddStateBagChangeHandler(Shared.State.vehicleEngine, nil, function(bagName, _, value)
     local vehicleEntity = GetEntityFromStateBagName(bagName)
-    if not vehicleEntity or vehicleEntity == 0 or not canControlVehicle(vehicleEntity) then return end
+    if not vehicleEntity or vehicleEntity == 0 --[[or not canControlVehicle(vehicleEntity)]] then return end
 
     SetVehicleEngineOn(vehicleEntity, value, true, true)
 end)
@@ -134,7 +160,7 @@ RegisterCommand("toggleVehicleLock", function()
     local vehicleEntity = GetVehiclePedIsIn(playerPedId, false)
     vehicleEntity = vehicleEntity == 0 and Utils.GetClosestVehicle(GetEntityCoords(PlayerPedId())) or vehicleEntity
 
-    if vehicleEntity then toggleVehicleLock(vehicleEntity, nil, false, true) end
+    if vehicleEntity then toggleVehicleLock(vehicleEntity, nil, false) end
 end, false)
 RegisterKeyMapping("toggleVehicleLock", "Toggle Vehicle Lock", "keyboard", Config.ToggleVehicleLock)
 
@@ -154,7 +180,7 @@ if Config.Debug then
         end
 
         toboolean = { ["true"] = true, ["false"] = false }
-        if vehicle then toggleVehicleLock(vehicle, toboolean[args[2]:lower()], false, true) end
+        if vehicle then toggleVehicleLock(vehicle, toboolean[args[2]:lower()], false) end
     end, false)
 end
 

@@ -22,6 +22,10 @@ function Utils.Notification(source, message, type, duration)
     end
 end
 
+function Utils.ProgressBar()
+    if Utils.IsDuplicityVersion then return end
+end
+
 ---@param coords vector3
 ---@return table
 function Utils.GetNearbyVehicles(coords)
