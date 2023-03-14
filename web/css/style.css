@@ -1,0 +1,82 @@
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+#keyfob {
+    background-image: url(../image/keyfob.png);
+    background-repeat: no-repeat;
+    font-weight: 400;
+    font-size: 12px;
+    width: 235px;
+    height: 384px;
+    color: #212121;
+    position: absolute;
+    right: 40px;
+    bottom: 0px;
+    overflow: hidden;
+    cursor: default;
+    display: none;
+}
+
+#buttonLock {
+    background-color: transparent;
+    border-color: transparent;
+    position: absolute;
+    width: 70px;
+    height: 100px;
+    top: 20px;
+    left: 48px;
+}
+
+#buttonLock:focus {outline:0 !important;}
+
+#buttonUnlock {
+    background-color: transparent;
+    border-color: transparent;
+    position: absolute;
+    width: 70px;
+    height: 100px;
+    top: 20px;
+    right: 48px;
+}
+#buttonUnlock:focus {outline:0 !important;}
+
+#buttonEngine {
+    background-color: transparent;
+    border-color: transparent;
+    position: absolute;
+    width: 146px;
+    height: 55px;
+    top: 124px;
+    left: 46px;
+}
+
+#buttonEngine:focus {outline:0 !important;}
+
+
+#buttonTrunk {
+    background-color: transparent;
+    border-color: transparent;
+    position: absolute;
+    width: 118px;
+    height: 55px;
+    top: 184px;
+    left: 60px;
+}
+
+#buttonTrunk:focus {outline:0 !important;}
+
+
+#buttonAlarm {
+    background-color: transparent;
+    border-color: transparent;
+    position: absolute;
+    width: 84px;
+    height: 55px;
+    top: 242px;
+    left: 79px;
+}
+
+#buttonAlarm:focus {outline:0 !important;}
