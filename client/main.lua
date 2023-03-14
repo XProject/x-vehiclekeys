@@ -148,9 +148,10 @@ AddStateBagChangeHandler(Shared.State.vehicleLock, nil, function(bagName, _, val
 end)
 
 RegisterCommand("toggleVehicleEngine", function()
-    local vehicleEntity = GetVehiclePedIsIn(PlayerPedId(), false)
+    local playerPedId = PlayerPedId()
+    local vehicleEntity = GetVehiclePedIsIn(playerPedId, false)
 
-    if not vehicleEntity or vehicleEntity == 0 then return end
+    if not vehicleEntity or vehicleEntity == 0 or GetPedInVehicleSeat(vehicleEntity, -1) ~= playerPedId then return end
 
     toggleVehicleEngine(vehicleEntity, nil, true, true)
 end, false)
