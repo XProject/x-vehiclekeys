@@ -9,10 +9,12 @@ local function playVehicleAlarm(vehicleEntity, duration)
     SetVehicleAlarm(vehicleEntity, true)
     SetVehicleAlarmTimeLeft(vehicleEntity, duration)
 end
+exports("playVehicleAlarm", playVehicleAlarm)
 
 local function stopVehicleAlarm(vehicleEntity)
     SetVehicleAlarm(vehicleEntity, false)
 end
+exports("stopVehicleAlarm", stopVehicleAlarm)
 
 local function blinkVehicleLights(vehicleEntity)
     NetworkRequestControlOfEntity(vehicleEntity)
@@ -26,6 +28,7 @@ local function blinkVehicleLights(vehicleEntity)
         end
     end)
 end
+exports("blinkVehicleLights", blinkVehicleLights)
 
 local function loadAnimDictionary(animDictionary)
     if not DoesAnimDictExist(animDictionary) then return end
@@ -62,6 +65,7 @@ local function toggleVehicleEngine(vehicleEntity, state, checkCanControl, notify
         Utils.Notification(nil, ("Engine Turned %s"):format(state and "On" or "Off"), state and "success" or "error")
     end
 end
+exports("toggleVehicleEngine", toggleVehicleEngine)
 
 local function toggleVehicleLock(vehicleEntity, state, checkCanControl)
     if checkCanControl and not canControlVehicle(vehicleEntity) then return end
@@ -72,6 +76,7 @@ local function toggleVehicleLock(vehicleEntity, state, checkCanControl)
 
     playKeyfobAnimation()
 end
+exports("toggleVehicleLock", toggleVehicleLock)
 
 local function outsideVehicleLoop()
     if Config.LockState ~= 4 and not Config.PreventBreakingWindows then return end
@@ -159,9 +164,11 @@ RegisterKeyMapping("toggleVehicleEngine", "Toggle Vehicle Engine", "keyboard", C
 
 RegisterCommand("toggleVehicleLock", function()
     local vehicleEntity = GetVehiclePedIsIn(playerPedId, false)
-    vehicleEntity = vehicleEntity == 0 and Utils.GetClosestVehicle(GetEntityCoords(PlayerPedId())) or vehicleEntity
+    vehicleEntity = (vehicleEntity == 0 and Utils.GetClosestVehicle(GetEntityCoords(PlayerPedId()))) or vehicleEntity
 
-    if vehicleEntity then toggleVehicleLock(vehicleEntity, nil, false) end
+    if not vehicleEntity or vehicleEntity == 0 then return end
+
+    toggleVehicleLock(vehicleEntity, nil, false)
 end, false)
 RegisterKeyMapping("toggleVehicleLock", "Toggle Vehicle Lock", "keyboard", Config.ToggleVehicleLock)
 

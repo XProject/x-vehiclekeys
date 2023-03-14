@@ -19,11 +19,9 @@ function main(){
             window.addEventListener("message", (event) => {
                 if (event.data.type == "OpenUI") {
                     document.getElementById("keyfob").style.display = "block";
-                    this.show = event.data.show
                     this.plate = event.data.plate
                 } else if (event.data.type == "CloseUI") {
                     document.getElementById("keyfob").style.display = "none";
-                    this.show = false
                     this.plate = ""
                 }
             })
@@ -31,7 +29,6 @@ function main(){
                 if (event.key == "Escape"){
                     document.getElementById("keyfob").style.display = "none";
                     HttpsPost("Close", {})
-                    this.show = false
                     this.plate = ""
                 }
             };
@@ -40,11 +37,8 @@ function main(){
 }
 
 async function HttpsPost(callback = "", data = {}) {
-    const reponse = await fetch(`https://${GetParentResourceName()}/${callback}`, {
+    const response = await fetch(`https://${GetParentResourceName()}/${callback}`, {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json; charset=UTF-8",
-        },
         body: JSON.stringify(data)
     }).then(resp => resp.json());
 }

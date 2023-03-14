@@ -8,6 +8,12 @@ version     "0.0.0"
 repository  "https://github.com/XProject/x-vehicleremote"
 description "Project-X Vehicle Remote: Synced Vehicle Remote & Engine System"
 
+ui_page "web/index.html"
+
+files {
+    "web/**"
+}
+
 shared_scripts {
     "shared/*.lua",
 }
