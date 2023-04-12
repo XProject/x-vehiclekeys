@@ -70,6 +70,8 @@ exports("toggleVehicleEngine", toggleVehicleEngine)
 local function toggleVehicleLock(vehicleEntity, state, checkCanControl)
     if checkCanControl and not canControlVehicle(vehicleEntity) then return end
 
+    if state then SetVehicleDoorsShut(vehicleEntity, false) end
+
     TriggerServerEvent(Shared.Event.vehicleLock, VehToNet(vehicleEntity), state)
 
     blinkVehicleLights(vehicleEntity)
@@ -149,7 +151,6 @@ AddStateBagChangeHandler(Shared.State.vehicleLock, nil, function(bagName, _, val
     if not vehicleEntity or vehicleEntity == 0 then return end
 
     SetVehicleDoorsLocked(vehicleEntity, value and Config.LockState or Config.UnlockState)
-    if value then SetVehicleDoorsShut(vehicleEntity, false) end
 end)
 
 RegisterCommand("toggleVehicleEngine", function()
@@ -168,7 +169,7 @@ RegisterCommand("toggleVehicleLock", function()
 
     if not vehicleEntity or vehicleEntity == 0 then return end
 
-    toggleVehicleLock(vehicleEntity, nil, false)
+    toggleVehicleLock(vehicleEntity, GetVehicleDoorLockStatus(vehicleEntity) == 1, false)
 end, false)
 RegisterKeyMapping("toggleVehicleLock", "Toggle Vehicle Lock", "keyboard", Config.ToggleVehicleLock)
 
